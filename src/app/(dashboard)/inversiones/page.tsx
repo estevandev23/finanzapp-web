@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Plus, TrendingUp, TrendingDown, Minus, BarChart3 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -11,13 +11,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useAsyncData } from '@/shared/hooks/use-async-data'
+import { useModuleFilters } from '@/shared/hooks/use-module-filters'
 import { PageLoading } from '@/shared/components/loading-spinner'
 import { StatCard } from '@/shared/components/stat-card'
+import { ModuleFilterBar } from '@/shared/components/filters/module-filter-bar'
+import { EmptyState } from '@/shared/components/empty-state'
 import { formatCurrency } from '@/shared/lib/formatters'
 import { inversionesService } from '@/features/inversiones/services/inversiones.service'
 import { InversionForm } from '@/features/inversiones/components/inversion-form'
 import { InversionCard } from '@/features/inversiones/components/inversion-card'
-import type { InversionRequest } from '@/features/inversiones/types'
+import type { Inversion, InversionRequest } from '@/features/inversiones/types'
 import { sileo } from 'sileo'
 
 export default function InversionesPage() {
@@ -32,6 +35,29 @@ export default function InversionesPage() {
   const { data: activas, refetch: refetchActivas } = useAsyncData(fetchActivas)
   const { data: finalizadas, refetch: refetchFinalizadas } = useAsyncData(fetchFinalizadas)
 
+  const activasFilterConfig = useMemo(
+    () => ({
+      getSearchableText: (inv: Inversion) =>
+        [inv.nombre, inv.descripcion, String(inv.monto)].filter(Boolean).join(' '),
+      getDate: (inv: Inversion) => inv.fechaInversion,
+    }),
+    []
+  )
+
+  const finalizadasFilterConfig = useMemo(
+    () => ({
+      getSearchableText: (inv: Inversion) =>
+        [inv.nombre, inv.descripcion, String(inv.monto), String(inv.retornoReal ?? '')]
+          .filter(Boolean)
+          .join(' '),
+      getDate: (inv: Inversion) => inv.fechaInversion,
+    }),
+    []
+  )
+
+  const activasFilters = useModuleFilters(activas, activasFilterConfig)
+  const finalizadasFilters = useModuleFilters(finalizadas, finalizadasFilterConfig)
+
   const refetchAll = async () => {
     await Promise.all([refetchTodas(), refetchActivas(), refetchFinalizadas()])
   }
@@ -41,13 +67,13 @@ export default function InversionesPage() {
     try {
       await inversionesService.crear(data)
       sileo.success({
-        title: 'Inversión registrada',
-        description: `${data.nombre} — ${formatCurrency(data.monto)}`,
+        title: 'Inversion registrada',
+        description: `${data.nombre} - ${formatCurrency(data.monto)}`,
       })
       setShowForm(false)
       await refetchAll()
     } catch {
-      sileo.error({ title: 'Error', description: 'No se pudo registrar la inversión' })
+      sileo.error({ title: 'Error', description: 'No se pudo registrar la inversion' })
     } finally {
       setIsSubmitting(false)
     }
@@ -55,7 +81,8 @@ export default function InversionesPage() {
 
   const totalInvertido = (todas ?? []).reduce((sum, inv) => sum + inv.monto, 0)
   const totalRetornos = (finalizadas ?? []).reduce((sum, inv) => sum + (inv.retornoReal ?? 0), 0)
-  const gananciaTotal = totalRetornos - (finalizadas ?? []).reduce((sum, inv) => sum + inv.monto, 0)
+  const gananciaTotal =
+    totalRetornos - (finalizadas ?? []).reduce((sum, inv) => sum + inv.monto, 0)
 
   if (isLoading) return <PageLoading />
 
@@ -65,7 +92,7 @@ export default function InversionesPage() {
         <h1 className="text-2xl font-bold">Inversiones</h1>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4" />
-          Nueva inversión
+          Nueva inversion
         </Button>
       </div>
 
@@ -83,7 +110,7 @@ export default function InversionesPage() {
           trend="up"
         />
         <StatCard
-          title="Ganancia / Pérdida"
+          title="Ganancia / Perdida"
           value={formatCurrency(Math.abs(gananciaTotal))}
           icon={gananciaTotal >= 0 ? TrendingUp : TrendingDown}
           trend={gananciaTotal >= 0 ? 'up' : 'down'}
@@ -107,34 +134,81 @@ export default function InversionesPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="activas" className="mt-4">
-          {(activas ?? []).length === 0 ? (
-            <div className="rounded-lg border border-dashed py-12 text-center text-muted-foreground">
-              <TrendingUp className="mx-auto mb-3 h-8 w-8 opacity-40" />
-              <p className="text-sm">No tienes inversiones activas</p>
-              <Button size="sm" variant="outline" className="mt-3" onClick={() => setShowForm(true)}>
-                <Plus className="h-3.5 w-3.5" />
-                Registrar primera inversión
-              </Button>
-            </div>
+        <TabsContent value="activas" className="mt-4 space-y-4">
+          <ModuleFilterBar
+            searchPlaceholder="Buscar por nombre, descripcion o monto..."
+            search={activasFilters.search}
+            onSearchChange={activasFilters.setSearch}
+            datePreset={activasFilters.datePreset}
+            onDatePresetChange={activasFilters.setDatePreset}
+            hasActiveFilters={activasFilters.hasActiveFilters}
+            onReset={activasFilters.resetFilters}
+            totalItems={activasFilters.totalItems}
+            filteredCount={activasFilters.filteredCount}
+          />
+
+          {activasFilters.filteredData.length === 0 ? (
+            <EmptyState
+              title={activasFilters.hasActiveFilters ? 'Sin resultados' : 'No tienes inversiones activas'}
+              description={
+                activasFilters.hasActiveFilters
+                  ? 'No hay inversiones activas con los filtros aplicados'
+                  : 'Registra tu primera inversion para comenzar'
+              }
+              action={
+                activasFilters.hasActiveFilters ? (
+                  <Button size="sm" variant="outline" onClick={activasFilters.resetFilters}>
+                    Limpiar filtros
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => setShowForm(true)}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Registrar primera inversion
+                  </Button>
+                )
+              }
+            />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {activas!.map(inv => (
+              {activasFilters.filteredData.map((inv) => (
                 <InversionCard key={inv.id} inversion={inv} onUpdate={refetchAll} />
               ))}
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="finalizadas" className="mt-4">
-          {(finalizadas ?? []).length === 0 ? (
-            <div className="rounded-lg border border-dashed py-12 text-center text-muted-foreground">
-              <Minus className="mx-auto mb-3 h-8 w-8 opacity-40" />
-              <p className="text-sm">No tienes inversiones finalizadas</p>
-            </div>
+        <TabsContent value="finalizadas" className="mt-4 space-y-4">
+          <ModuleFilterBar
+            searchPlaceholder="Buscar por nombre, descripcion o retorno..."
+            search={finalizadasFilters.search}
+            onSearchChange={finalizadasFilters.setSearch}
+            datePreset={finalizadasFilters.datePreset}
+            onDatePresetChange={finalizadasFilters.setDatePreset}
+            hasActiveFilters={finalizadasFilters.hasActiveFilters}
+            onReset={finalizadasFilters.resetFilters}
+            totalItems={finalizadasFilters.totalItems}
+            filteredCount={finalizadasFilters.filteredCount}
+          />
+
+          {finalizadasFilters.filteredData.length === 0 ? (
+            <EmptyState
+              title={finalizadasFilters.hasActiveFilters ? 'Sin resultados' : 'No tienes inversiones finalizadas'}
+              description={
+                finalizadasFilters.hasActiveFilters
+                  ? 'No hay inversiones finalizadas con los filtros aplicados'
+                  : 'Las inversiones finalizadas apareceran aqui'
+              }
+              action={
+                finalizadasFilters.hasActiveFilters ? (
+                  <Button size="sm" variant="outline" onClick={finalizadasFilters.resetFilters}>
+                    Limpiar filtros
+                  </Button>
+                ) : undefined
+              }
+            />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {finalizadas!.map(inv => (
+              {finalizadasFilters.filteredData.map((inv) => (
                 <InversionCard key={inv.id} inversion={inv} onUpdate={refetchAll} />
               ))}
             </div>
@@ -145,7 +219,7 @@ export default function InversionesPage() {
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Registrar inversión</DialogTitle>
+            <DialogTitle>Registrar inversion</DialogTitle>
           </DialogHeader>
           <InversionForm
             onSubmit={handleCreate}

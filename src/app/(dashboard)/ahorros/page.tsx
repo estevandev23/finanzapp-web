@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { PiggyBank, Plus } from 'lucide-react'
 import { sileo } from 'sileo'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,9 @@ import { StatCard } from '@/shared/components/stat-card'
 import { PageLoading } from '@/shared/components/loading-spinner'
 import { EmptyState } from '@/shared/components/empty-state'
 import { ErrorDisplay } from '@/shared/components/error-display'
+import { ModuleFilterBar } from '@/shared/components/filters/module-filter-bar'
 import { useAsyncData } from '@/shared/hooks/use-async-data'
+import { useModuleFilters } from '@/shared/hooks/use-module-filters'
 import { formatCurrency } from '@/shared/lib/formatters'
 import { ahorrosService } from '@/features/ahorros/services/ahorros.service'
 import { metasService } from '@/features/metas/services/metas.service'
@@ -37,6 +39,25 @@ export default function AhorrosPage() {
   const { data: ahorros, isLoading, error, refetch } = useAsyncData(fetchAhorros)
   const { data: total, refetch: refetchTotal } = useAsyncData(fetchTotal)
   const { data: metas } = useAsyncData(fetchMetas)
+
+  const filterConfig = useMemo(
+    () => ({
+      getSearchableText: (a: Ahorro) =>
+        [a.descripcion, String(a.monto)].filter(Boolean).join(' '),
+      getDate: (a: Ahorro) => a.fecha,
+    }),
+    []
+  )
+
+  const {
+    search, setSearch,
+    datePreset, setDatePreset,
+    filteredData,
+    resetFilters,
+    hasActiveFilters,
+    totalItems,
+    filteredCount,
+  } = useModuleFilters(ahorros, filterConfig)
 
   function openCreateDialog() {
     setEditingAhorro(undefined)
@@ -78,7 +99,6 @@ export default function AhorrosPage() {
 
   async function confirmDelete() {
     if (!deleteId) return
-
     try {
       await ahorrosService.eliminarAhorro(deleteId)
       sileo.success({ title: 'Ahorro eliminado correctamente' })
@@ -111,6 +131,18 @@ export default function AhorrosPage() {
         />
       </div>
 
+      <ModuleFilterBar
+        searchPlaceholder="Buscar por descripcion o monto..."
+        search={search}
+        onSearchChange={setSearch}
+        datePreset={datePreset}
+        onDatePresetChange={setDatePreset}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetFilters}
+        totalItems={totalItems}
+        filteredCount={filteredCount}
+      />
+
       {!ahorros || ahorros.length === 0 ? (
         <EmptyState
           title="Sin ahorros registrados"
@@ -122,9 +154,19 @@ export default function AhorrosPage() {
             </Button>
           }
         />
+      ) : filteredData.length === 0 ? (
+        <EmptyState
+          title="Sin resultados"
+          description="No se encontraron ahorros con los filtros aplicados"
+          action={
+            <Button variant="outline" onClick={resetFilters}>
+              Limpiar filtros
+            </Button>
+          }
+        />
       ) : (
         <AhorrosTable
-          ahorros={ahorros}
+          ahorros={filteredData}
           metas={metas ?? []}
           onEdit={openEditDialog}
           onDelete={handleDelete}

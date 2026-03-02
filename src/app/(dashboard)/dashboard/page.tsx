@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { TrendingUp, TrendingDown, PiggyBank, Wallet, Target, HandCoins, Sparkles } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,11 +9,16 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useAsyncData } from '@/shared/hooks/use-async-data'
 import { balanceService } from '@/features/balance/services/balance.service'
 import { metasService } from '@/features/metas/services/metas.service'
-import { ingresosService } from '@/features/ingresos/services/ingresos.service'
-import { gastosService } from '@/features/gastos/services/gastos.service'
 import { StatCard } from '@/shared/components/stat-card'
 import { DashboardSkeleton } from '@/shared/components/loading-spinner'
-import { formatCurrency, getFirstDayOfMonth, getToday, getMonthName } from '@/shared/lib/formatters'
+import { formatCurrency } from '@/shared/lib/formatters'
+import {
+  DATE_PRESETS,
+  DATE_PRESET_LABELS,
+  getDateRangeForPreset,
+  type DatePreset,
+} from '@/shared/lib/date-utils'
+import { cn } from '@/lib/utils'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -24,26 +29,24 @@ function getGreeting(): string {
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const [datePreset, setDatePreset] = useState<DatePreset>('month')
+
+  const range = useMemo(() => getDateRangeForPreset(datePreset), [datePreset])
 
   const fetchBalance = useCallback(() => balanceService.obtenerBalance(), [])
   const fetchMetas = useCallback(() => metasService.obtenerMetas(), [])
 
-  const fechaInicio = useMemo(() => getFirstDayOfMonth(), [])
-  const fechaFin = useMemo(() => getToday(), [])
-
-  const fetchIngresosPeriodo = useCallback(
-    () => ingresosService.obtenerTotalIngresosPorPeriodo(fechaInicio, fechaFin),
-    [fechaInicio, fechaFin]
-  )
-  const fetchGastosPeriodo = useCallback(
-    () => gastosService.obtenerTotalGastosPorPeriodo(fechaInicio, fechaFin),
-    [fechaInicio, fechaFin]
+  const fetchBalancePeriodo = useCallback(
+    () =>
+      range
+        ? balanceService.obtenerBalancePorPeriodo(range.start, range.end)
+        : balanceService.obtenerBalance(),
+    [range]
   )
 
-  const { data: balance, isLoading: loadingBalance } = useAsyncData(fetchBalance)
+  const { data: balanceTotal, isLoading: loadingBalance } = useAsyncData(fetchBalance)
   const { data: metas, isLoading: loadingMetas } = useAsyncData(fetchMetas)
-  const { data: ingresosMes } = useAsyncData(fetchIngresosPeriodo)
-  const { data: gastosMes } = useAsyncData(fetchGastosPeriodo)
+  const { data: balancePeriodo, isLoading: loadingPeriodo } = useAsyncData(fetchBalancePeriodo)
 
   if (loadingBalance || loadingMetas) {
     return <DashboardSkeleton />
@@ -51,12 +54,12 @@ export default function DashboardPage() {
 
   const metasActivas = metas?.filter((m) => m.estado === 'ACTIVA') ?? []
 
-  const currentMonth = getMonthName(new Date().getMonth())
+  const periodoLabel = DATE_PRESET_LABELS[datePreset]
   const chartData = [
     {
-      name: currentMonth,
-      Ingresos: ingresosMes ?? 0,
-      Gastos: gastosMes ?? 0,
+      name: periodoLabel,
+      Ingresos: balancePeriodo?.totalIngresos ?? 0,
+      Gastos: balancePeriodo?.totalGastos ?? 0,
     },
   ]
 
@@ -82,50 +85,73 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
+      {/* Selector de período */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground">Período:</span>
+        <div className="flex items-center gap-0.5 rounded-lg border bg-muted/40 p-1">
+          {DATE_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              onClick={() => setDatePreset(preset)}
+              className={cn(
+                'rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150',
+                datePreset === preset
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {DATE_PRESET_LABELS[preset]}
+            </button>
+          ))}
+        </div>
+        {loadingPeriodo && (
+          <span className="text-xs text-muted-foreground animate-pulse">Actualizando...</span>
+        )}
+      </div>
+
+      {/* Stat cards — período seleccionado */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
-          title="Total Ingresos"
-          value={formatCurrency(balance?.totalIngresos ?? 0)}
+          title="Ingresos"
+          value={formatCurrency(balancePeriodo?.totalIngresos ?? 0)}
           icon={TrendingUp}
           trend="up"
-          tooltip="Suma de todos tus ingresos registrados"
+          tooltip={`Total ingresos — ${periodoLabel}`}
         />
         <StatCard
-          title="Total Gastos"
-          value={formatCurrency(balance?.totalGastos ?? 0)}
+          title="Gastos"
+          value={formatCurrency(balancePeriodo?.totalGastos ?? 0)}
           icon={TrendingDown}
           trend="down"
-          tooltip="Suma de todos tus gastos registrados"
+          tooltip={`Total gastos — ${periodoLabel}`}
         />
         <StatCard
-          title="Total Ahorros"
-          value={formatCurrency(balance?.totalAhorrosDesdeIngresos ?? 0)}
+          title="Ahorros"
+          value={formatCurrency(balancePeriodo?.totalAhorros ?? 0)}
           icon={PiggyBank}
           trend="neutral"
-          description={`Acumulado: ${formatCurrency(balance?.totalAhorros ?? 0)}`}
-          tooltip="Ahorro destinado desde tus ingresos este mes"
+          tooltip={`Total ahorros — ${periodoLabel}`}
         />
         <StatCard
           title="Total Deudas"
-          value={formatCurrency(balance?.totalDeudas ?? 0)}
+          value={formatCurrency(balanceTotal?.totalDeudas ?? 0)}
           icon={HandCoins}
           trend="down"
           tooltip="Monto total pendiente de tus deudas activas"
         />
         <StatCard
           title="Disponible"
-          value={formatCurrency(balance?.dineroDisponible ?? 0)}
+          value={formatCurrency(balancePeriodo?.dineroDisponible ?? balanceTotal?.dineroDisponible ?? 0)}
           icon={Wallet}
-          trend={(balance?.dineroDisponible ?? 0) >= 0 ? 'up' : 'down'}
-          tooltip="Ingresos − Gastos − Ahorros = dinero disponible"
+          trend={(balancePeriodo?.dineroDisponible ?? 0) >= 0 ? 'up' : 'down'}
+          tooltip={`Ingresos − Gastos − Ahorros — ${periodoLabel}`}
         />
       </div>
 
-      {/* Gráfico */}
+      {/* Gráfico Ingresos vs Gastos */}
       <Card>
         <CardHeader>
-          <CardTitle>Ingresos vs Gastos — {currentMonth}</CardTitle>
+          <CardTitle>Ingresos vs Gastos — {periodoLabel}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-72">
@@ -133,7 +159,11 @@ export default function DashboardPage() {
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="name" className="text-xs" />
-                <YAxis className="text-xs" tickFormatter={(value) => formatCurrency(value)} />
+                <YAxis
+                  className="text-xs"
+                  tickFormatter={(value) => formatCurrency(value)}
+                  width={90}
+                />
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend />
                 <Bar dataKey="Ingresos" fill="oklch(0.55 0.17 155)" radius={[4, 4, 0, 0]} />

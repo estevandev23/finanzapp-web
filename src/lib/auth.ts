@@ -46,7 +46,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       try {
         const oauthUrl = `${API_BASE_URL}/auth/oauth`
-        console.log('[auth] signIn → POST', oauthUrl, { provider: account.provider, email: user.email })
 
         const response = await fetch(oauthUrl, {
           method: 'POST',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Plus, TrendingDown } from 'lucide-react'
 import { sileo } from 'sileo'
 import { Button } from '@/components/ui/button'
@@ -16,12 +16,15 @@ import { StatCard } from '@/shared/components/stat-card'
 import { PageLoading } from '@/shared/components/loading-spinner'
 import { EmptyState } from '@/shared/components/empty-state'
 import { ErrorDisplay } from '@/shared/components/error-display'
+import { ModuleFilterBar } from '@/shared/components/filters/module-filter-bar'
 import { useAsyncData } from '@/shared/hooks/use-async-data'
+import { useModuleFilters } from '@/shared/hooks/use-module-filters'
 import { formatCurrency } from '@/shared/lib/formatters'
 import { gastosService } from '@/features/gastos/services/gastos.service'
 import { GastoForm } from '@/features/gastos/components/gasto-form'
 import { GastosTable } from '@/features/gastos/components/gastos-table'
 import { GastosChart } from '@/features/gastos/components/gastos-chart'
+import { CATEGORIAS_GASTO } from '@/shared/types'
 import type { Gasto, GastoRequest } from '@/features/gastos/types'
 
 export default function GastosPage() {
@@ -37,6 +40,29 @@ export default function GastosPage() {
   const { data: gastos, isLoading, error, refetch } = useAsyncData(fetchGastos)
   const { data: total, refetch: refetchTotal } = useAsyncData(fetchTotal)
   const { data: desglose, refetch: refetchDesglose } = useAsyncData(fetchDesglose)
+
+  const filterConfig = useMemo(
+    () => ({
+      getSearchableText: (g: Gasto) =>
+        [g.descripcion, g.categoria, g.categoriaDescripcion, String(g.monto)]
+          .filter(Boolean)
+          .join(' '),
+      getDate: (g: Gasto) => g.fecha,
+      getCategory: (g: Gasto) => g.categoria,
+    }),
+    []
+  )
+
+  const {
+    search, setSearch,
+    datePreset, setDatePreset,
+    category, setCategory,
+    filteredData,
+    resetFilters,
+    hasActiveFilters,
+    totalItems,
+    filteredCount,
+  } = useModuleFilters(gastos, filterConfig)
 
   function openCreateDialog() {
     setEditingGasto(undefined)
@@ -78,7 +104,6 @@ export default function GastosPage() {
 
   async function confirmDelete() {
     if (!deleteId) return
-
     try {
       await gastosService.eliminarGasto(deleteId)
       sileo.success({ title: 'Gasto eliminado correctamente' })
@@ -114,6 +139,21 @@ export default function GastosPage() {
         )}
       </div>
 
+      <ModuleFilterBar
+        searchPlaceholder="Buscar por descripción, categoría o monto..."
+        search={search}
+        onSearchChange={setSearch}
+        datePreset={datePreset}
+        onDatePresetChange={setDatePreset}
+        categoryOptions={CATEGORIAS_GASTO}
+        category={category}
+        onCategoryChange={setCategory}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetFilters}
+        totalItems={totalItems}
+        filteredCount={filteredCount}
+      />
+
       {!gastos || gastos.length === 0 ? (
         <EmptyState
           title="Sin gastos registrados"
@@ -125,9 +165,19 @@ export default function GastosPage() {
             </Button>
           }
         />
+      ) : filteredData.length === 0 ? (
+        <EmptyState
+          title="Sin resultados"
+          description="No se encontraron gastos con los filtros aplicados"
+          action={
+            <Button variant="outline" onClick={resetFilters}>
+              Limpiar filtros
+            </Button>
+          }
+        />
       ) : (
         <GastosTable
-          gastos={gastos}
+          gastos={filteredData}
           onEdit={openEditDialog}
           onDelete={handleDelete}
         />

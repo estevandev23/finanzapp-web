@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Plus, TrendingUp } from 'lucide-react'
 import { sileo } from 'sileo'
 import { Button } from '@/components/ui/button'
@@ -16,11 +16,14 @@ import { StatCard } from '@/shared/components/stat-card'
 import { PageLoading } from '@/shared/components/loading-spinner'
 import { EmptyState } from '@/shared/components/empty-state'
 import { ErrorDisplay } from '@/shared/components/error-display'
+import { ModuleFilterBar } from '@/shared/components/filters/module-filter-bar'
 import { useAsyncData } from '@/shared/hooks/use-async-data'
+import { useModuleFilters } from '@/shared/hooks/use-module-filters'
 import { formatCurrency } from '@/shared/lib/formatters'
 import { ingresosService } from '@/features/ingresos/services/ingresos.service'
 import { IngresoForm } from '@/features/ingresos/components/ingreso-form'
 import { IngresosTable } from '@/features/ingresos/components/ingresos-table'
+import { CATEGORIAS_INGRESO } from '@/shared/types'
 import type { Ingreso, IngresoRequest } from '@/features/ingresos/types'
 
 export default function IngresosPage() {
@@ -34,6 +37,27 @@ export default function IngresosPage() {
 
   const { data: ingresos, isLoading, error, refetch } = useAsyncData(fetchIngresos)
   const { data: total, refetch: refetchTotal } = useAsyncData(fetchTotal)
+
+  const filterConfig = useMemo(
+    () => ({
+      getSearchableText: (i: Ingreso) =>
+        [i.descripcion, i.categoria, String(i.monto)].filter(Boolean).join(' '),
+      getDate: (i: Ingreso) => i.fecha,
+      getCategory: (i: Ingreso) => i.categoria,
+    }),
+    []
+  )
+
+  const {
+    search, setSearch,
+    datePreset, setDatePreset,
+    category, setCategory,
+    filteredData,
+    resetFilters,
+    hasActiveFilters,
+    totalItems,
+    filteredCount,
+  } = useModuleFilters(ingresos, filterConfig)
 
   function openCreateDialog() {
     setEditingIngreso(undefined)
@@ -75,7 +99,6 @@ export default function IngresosPage() {
 
   async function confirmDelete() {
     if (!deleteId) return
-
     try {
       await ingresosService.eliminarIngreso(deleteId)
       sileo.success({ title: 'Ingreso eliminado correctamente' })
@@ -108,6 +131,21 @@ export default function IngresosPage() {
         />
       </div>
 
+      <ModuleFilterBar
+        searchPlaceholder="Buscar por descripcion, categoria o monto..."
+        search={search}
+        onSearchChange={setSearch}
+        datePreset={datePreset}
+        onDatePresetChange={setDatePreset}
+        categoryOptions={CATEGORIAS_INGRESO}
+        category={category}
+        onCategoryChange={setCategory}
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetFilters}
+        totalItems={totalItems}
+        filteredCount={filteredCount}
+      />
+
       {!ingresos || ingresos.length === 0 ? (
         <EmptyState
           title="Sin ingresos registrados"
@@ -119,9 +157,19 @@ export default function IngresosPage() {
             </Button>
           }
         />
+      ) : filteredData.length === 0 ? (
+        <EmptyState
+          title="Sin resultados"
+          description="No se encontraron ingresos con los filtros aplicados"
+          action={
+            <Button variant="outline" onClick={resetFilters}>
+              Limpiar filtros
+            </Button>
+          }
+        />
       ) : (
         <IngresosTable
-          ingresos={ingresos}
+          ingresos={filteredData}
           onEdit={openEditDialog}
           onDelete={handleDelete}
         />
