@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, X, CalendarRange } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -10,7 +10,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { DATE_PRESETS, DATE_PRESET_LABELS, getTodayYMD, type DatePreset, type DateRange } from '@/shared/lib/date-utils'
+import { DATE_PRESETS, DATE_PRESET_LABELS, type DatePreset, type DateRange } from '@/shared/lib/date-utils'
+import { DateRangePicker } from './date-range-picker'
 
 export interface FilterOption {
   value: string
@@ -60,25 +61,11 @@ export function ModuleFilterBar({
   showDateFilter = true,
   className,
 }: ModuleFilterBarProps) {
-  const today = getTodayYMD()
-
   function handlePresetChange(preset: DatePreset) {
     onDatePresetChange(preset)
     if (preset !== 'custom' && onCustomRangeChange) {
       onCustomRangeChange(null)
     }
-  }
-
-  function handleCustomStart(value: string) {
-    if (!onCustomRangeChange) return
-    const end = customRange?.end ?? today
-    onCustomRangeChange(value ? { start: value, end } : null)
-  }
-
-  function handleCustomEnd(value: string) {
-    if (!onCustomRangeChange) return
-    const start = customRange?.start ?? value
-    onCustomRangeChange(value ? { start, end: value } : null)
   }
 
   return (
@@ -165,27 +152,11 @@ export function ModuleFilterBar({
         )}
 
         {showDateFilter && datePreset === 'custom' && onCustomRangeChange && (
-          <div className="flex items-center gap-1.5 rounded-lg border bg-muted/40 px-3 py-1.5">
-            <CalendarRange className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <Input
-              type="date"
-              value={customRange?.start ?? ''}
-              max={customRange?.end ?? today}
-              onChange={(e) => handleCustomStart(e.target.value)}
-              className="h-7 w-[140px] border-none bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
-              aria-label="Fecha inicio"
-            />
-            <span className="text-xs text-muted-foreground">&#8212;</span>
-            <Input
-              type="date"
-              value={customRange?.end ?? ''}
-              min={customRange?.start ?? undefined}
-              max={today}
-              onChange={(e) => handleCustomEnd(e.target.value)}
-              className="h-7 w-[140px] border-none bg-transparent p-0 text-xs shadow-none focus-visible:ring-0"
-              aria-label="Fecha fin"
-            />
-          </div>
+          <DateRangePicker
+            value={customRange ?? null}
+            onChange={onCustomRangeChange}
+            placeholder="Seleccionar rango de fechas"
+          />
         )}
 
         {hasActiveFilters && (

@@ -17,7 +17,9 @@ import {
   DATE_PRESET_LABELS,
   getDateRangeForPreset,
   type DatePreset,
+  type DateRange,
 } from '@/shared/lib/date-utils'
+import { DateRangePicker } from '@/shared/components/filters/date-range-picker'
 import { cn } from '@/lib/utils'
 
 function getGreeting(): string {
@@ -30,8 +32,17 @@ function getGreeting(): string {
 export default function DashboardPage() {
   const { user } = useAuth()
   const [datePreset, setDatePreset] = useState<DatePreset>('month')
+  const [customRange, setCustomRange] = useState<DateRange | null>(null)
 
-  const range = useMemo(() => getDateRangeForPreset(datePreset), [datePreset])
+  const range = useMemo(
+    () => getDateRangeForPreset(datePreset, customRange),
+    [datePreset, customRange]
+  )
+
+  function handlePresetChange(preset: DatePreset) {
+    setDatePreset(preset)
+    if (preset !== 'custom') setCustomRange(null)
+  }
 
   const fetchBalance = useCallback(() => balanceService.obtenerBalance(), [])
   const fetchMetas = useCallback(() => metasService.obtenerMetas(), [])
@@ -86,13 +97,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Selector de período */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium text-muted-foreground">Período:</span>
         <div className="flex items-center gap-0.5 rounded-lg border bg-muted/40 p-1">
           {DATE_PRESETS.map((preset) => (
             <button
               key={preset}
-              onClick={() => setDatePreset(preset)}
+              onClick={() => handlePresetChange(preset)}
               className={cn(
                 'rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150',
                 datePreset === preset
@@ -104,6 +115,13 @@ export default function DashboardPage() {
             </button>
           ))}
         </div>
+        {datePreset === 'custom' && (
+          <DateRangePicker
+            value={customRange}
+            onChange={setCustomRange}
+            placeholder="Seleccionar rango de fechas"
+          />
+        )}
         {loadingPeriodo && (
           <span className="text-xs text-muted-foreground animate-pulse">Actualizando...</span>
         )}
