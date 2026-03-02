@@ -1,4 +1,4 @@
-export type DatePreset = 'all' | 'week' | 'month' | 'year'
+export type DatePreset = 'all' | 'week' | 'month' | 'year' | 'custom'
 
 export interface DateRange {
   start: string
@@ -10,9 +10,10 @@ export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   week: 'Esta semana',
   month: 'Este mes',
   year: 'Este año',
+  custom: 'Personalizado',
 }
 
-export const DATE_PRESETS: DatePreset[] = ['all', 'week', 'month', 'year']
+export const DATE_PRESETS: DatePreset[] = ['all', 'week', 'month', 'year', 'custom']
 
 function toYMD(date: Date): string {
   const y = date.getFullYear()
@@ -21,8 +22,9 @@ function toYMD(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
-export function getDateRangeForPreset(preset: DatePreset): DateRange | null {
+export function getDateRangeForPreset(preset: DatePreset, customRange?: DateRange | null): DateRange | null {
   if (preset === 'all') return null
+  if (preset === 'custom') return customRange ?? null
 
   const now = new Date()
   const end = toYMD(now)
@@ -56,4 +58,8 @@ export function isDateInRange(dateStr: string, range: DateRange): boolean {
 
 export function getPresetLabel(preset: DatePreset): string {
   return DATE_PRESET_LABELS[preset]
+}
+
+export function getTodayYMD(): string {
+  return toYMD(new Date())
 }

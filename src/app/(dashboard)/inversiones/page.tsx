@@ -141,6 +141,8 @@ export default function InversionesPage() {
             onSearchChange={activasFilters.setSearch}
             datePreset={activasFilters.datePreset}
             onDatePresetChange={activasFilters.setDatePreset}
+            customRange={activasFilters.customRange}
+            onCustomRangeChange={activasFilters.setCustomRange}
             hasActiveFilters={activasFilters.hasActiveFilters}
             onReset={activasFilters.resetFilters}
             totalItems={activasFilters.totalItems}
@@ -184,6 +186,8 @@ export default function InversionesPage() {
             onSearchChange={finalizadasFilters.setSearch}
             datePreset={finalizadasFilters.datePreset}
             onDatePresetChange={finalizadasFilters.setDatePreset}
+            customRange={finalizadasFilters.customRange}
+            onCustomRangeChange={finalizadasFilters.setCustomRange}
             hasActiveFilters={finalizadasFilters.hasActiveFilters}
             onReset={finalizadasFilters.resetFilters}
             totalItems={finalizadasFilters.totalItems}

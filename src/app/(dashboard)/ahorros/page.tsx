@@ -52,6 +52,7 @@ export default function AhorrosPage() {
   const {
     search, setSearch,
     datePreset, setDatePreset,
+    customRange, setCustomRange,
     filteredData,
     resetFilters,
     hasActiveFilters,
@@ -137,6 +138,8 @@ export default function AhorrosPage() {
         onSearchChange={setSearch}
         datePreset={datePreset}
         onDatePresetChange={setDatePreset}
+        customRange={customRange}
+        onCustomRangeChange={setCustomRange}
         hasActiveFilters={hasActiveFilters}
         onReset={resetFilters}
         totalItems={totalItems}

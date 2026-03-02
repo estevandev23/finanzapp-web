@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { getDateRangeForPreset, isDateInRange, type DatePreset } from '@/shared/lib/date-utils'
+import { getDateRangeForPreset, isDateInRange, type DatePreset, type DateRange } from '@/shared/lib/date-utils'
 
 export interface ModuleFiltersConfig<T> {
   getSearchableText: (item: T) => string
@@ -13,6 +13,7 @@ export interface ModuleFiltersConfig<T> {
 export function useModuleFilters<T>(data: T[] | null | undefined, config: ModuleFiltersConfig<T>) {
   const [search, setSearch] = useState('')
   const [datePreset, setDatePreset] = useState<DatePreset>('all')
+  const [customRange, setCustomRange] = useState<DateRange | null>(null)
   const [category, setCategory] = useState('')
   const [status, setStatus] = useState('')
 
@@ -29,7 +30,7 @@ export function useModuleFilters<T>(data: T[] | null | undefined, config: Module
     }
 
     if (datePreset !== 'all' && config.getDate) {
-      const range = getDateRangeForPreset(datePreset)
+      const range = getDateRangeForPreset(datePreset, customRange)
       if (range) {
         result = result.filter((item) => {
           const dateStr = config.getDate!(item)
@@ -47,23 +48,29 @@ export function useModuleFilters<T>(data: T[] | null | undefined, config: Module
     }
 
     return result
-  }, [data, search, datePreset, category, status, config])
+  }, [data, search, datePreset, customRange, category, status, config])
 
   function resetFilters() {
     setSearch('')
     setDatePreset('all')
+    setCustomRange(null)
     setCategory('')
     setStatus('')
   }
 
   const hasActiveFilters =
-    search.trim() !== '' || datePreset !== 'all' || category !== '' || status !== ''
+    search.trim() !== '' ||
+    datePreset !== 'all' ||
+    category !== '' ||
+    status !== ''
 
   return {
     search,
     setSearch,
     datePreset,
     setDatePreset,
+    customRange,
+    setCustomRange,
     category,
     setCategory,
     status,

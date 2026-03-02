@@ -24,6 +24,7 @@ import { gastosService } from '@/features/gastos/services/gastos.service'
 import { GastoForm } from '@/features/gastos/components/gasto-form'
 import { GastosTable } from '@/features/gastos/components/gastos-table'
 import { GastosChart } from '@/features/gastos/components/gastos-chart'
+import { categoriasService } from '@/features/categorias/services/categorias.service'
 import { CATEGORIAS_GASTO } from '@/shared/types'
 import type { Gasto, GastoRequest } from '@/features/gastos/types'
 
@@ -36,10 +37,19 @@ export default function GastosPage() {
   const fetchGastos = useCallback(() => gastosService.obtenerGastos(), [])
   const fetchTotal = useCallback(() => gastosService.obtenerTotalGastos(), [])
   const fetchDesglose = useCallback(() => gastosService.obtenerDesgloseGastos(), [])
+  const fetchCategorias = useCallback(() => categoriasService.listarPorTipo('GASTO'), [])
 
   const { data: gastos, isLoading, error, refetch } = useAsyncData(fetchGastos)
   const { data: total, refetch: refetchTotal } = useAsyncData(fetchTotal)
   const { data: desglose, refetch: refetchDesglose } = useAsyncData(fetchDesglose)
+  const { data: categoriasPersonalizadas } = useAsyncData(fetchCategorias)
+
+  const categoryOptions = useMemo(() => {
+    const personalizadas = (categoriasPersonalizadas ?? [])
+      .filter((c) => c.activa)
+      .map((c) => ({ value: c.id, label: c.nombre }))
+    return [...CATEGORIAS_GASTO, ...personalizadas]
+  }, [categoriasPersonalizadas])
 
   const filterConfig = useMemo(
     () => ({
@@ -48,7 +58,7 @@ export default function GastosPage() {
           .filter(Boolean)
           .join(' '),
       getDate: (g: Gasto) => g.fecha,
-      getCategory: (g: Gasto) => g.categoria,
+      getCategory: (g: Gasto) => g.categoriaPersonalizadaId ?? g.categoria,
     }),
     []
   )
@@ -56,6 +66,7 @@ export default function GastosPage() {
   const {
     search, setSearch,
     datePreset, setDatePreset,
+    customRange, setCustomRange,
     category, setCategory,
     filteredData,
     resetFilters,
@@ -140,12 +151,14 @@ export default function GastosPage() {
       </div>
 
       <ModuleFilterBar
-        searchPlaceholder="Buscar por descripción, categoría o monto..."
+        searchPlaceholder="Buscar por descripcion, categoria o monto..."
         search={search}
         onSearchChange={setSearch}
         datePreset={datePreset}
         onDatePresetChange={setDatePreset}
-        categoryOptions={CATEGORIAS_GASTO}
+        customRange={customRange}
+        onCustomRangeChange={setCustomRange}
+        categoryOptions={categoryOptions}
         category={category}
         onCategoryChange={setCategory}
         hasActiveFilters={hasActiveFilters}
@@ -223,3 +236,4 @@ export default function GastosPage() {
     </div>
   )
 }
+

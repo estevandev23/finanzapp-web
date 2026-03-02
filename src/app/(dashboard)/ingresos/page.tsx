@@ -23,6 +23,7 @@ import { formatCurrency } from '@/shared/lib/formatters'
 import { ingresosService } from '@/features/ingresos/services/ingresos.service'
 import { IngresoForm } from '@/features/ingresos/components/ingreso-form'
 import { IngresosTable } from '@/features/ingresos/components/ingresos-table'
+import { categoriasService } from '@/features/categorias/services/categorias.service'
 import { CATEGORIAS_INGRESO } from '@/shared/types'
 import type { Ingreso, IngresoRequest } from '@/features/ingresos/types'
 
@@ -34,16 +35,25 @@ export default function IngresosPage() {
 
   const fetchIngresos = useCallback(() => ingresosService.obtenerIngresos(), [])
   const fetchTotal = useCallback(() => ingresosService.obtenerTotalIngresos(), [])
+  const fetchCategorias = useCallback(() => categoriasService.listarPorTipo('INGRESO'), [])
 
   const { data: ingresos, isLoading, error, refetch } = useAsyncData(fetchIngresos)
   const { data: total, refetch: refetchTotal } = useAsyncData(fetchTotal)
+  const { data: categoriasPersonalizadas } = useAsyncData(fetchCategorias)
+
+  const categoryOptions = useMemo(() => {
+    const personalizadas = (categoriasPersonalizadas ?? [])
+      .filter((c) => c.activa)
+      .map((c) => ({ value: c.id, label: c.nombre }))
+    return [...CATEGORIAS_INGRESO, ...personalizadas]
+  }, [categoriasPersonalizadas])
 
   const filterConfig = useMemo(
     () => ({
       getSearchableText: (i: Ingreso) =>
-        [i.descripcion, i.categoria, String(i.monto)].filter(Boolean).join(' '),
+        [i.descripcion, i.categoria, i.categoriaDescripcion, String(i.monto)].filter(Boolean).join(' '),
       getDate: (i: Ingreso) => i.fecha,
-      getCategory: (i: Ingreso) => i.categoria,
+      getCategory: (i: Ingreso) => i.categoriaPersonalizadaId ?? i.categoria,
     }),
     []
   )
@@ -51,6 +61,7 @@ export default function IngresosPage() {
   const {
     search, setSearch,
     datePreset, setDatePreset,
+    customRange, setCustomRange,
     category, setCategory,
     filteredData,
     resetFilters,
@@ -137,7 +148,9 @@ export default function IngresosPage() {
         onSearchChange={setSearch}
         datePreset={datePreset}
         onDatePresetChange={setDatePreset}
-        categoryOptions={CATEGORIAS_INGRESO}
+        customRange={customRange}
+        onCustomRangeChange={setCustomRange}
+        categoryOptions={categoryOptions}
         category={category}
         onCategoryChange={setCategory}
         hasActiveFilters={hasActiveFilters}
