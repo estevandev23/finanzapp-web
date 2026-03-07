@@ -1,4 +1,4 @@
-import type { CategoriaIngreso } from '@/shared/types'
+import type { CategoriaIngreso, MetodoPago } from '@/shared/types'
 
 export interface Ingreso {
   id: string
@@ -11,6 +11,8 @@ export interface Ingreso {
   fecha: string
   montoAhorro?: number
   prestamoId?: string
+  metodoPago?: MetodoPago
+  metodoPagoDescripcion?: string
 }
 
 export interface IngresoRequest {
@@ -22,4 +24,5 @@ export interface IngresoRequest {
   montoAhorro?: number
   metaId?: string
   prestamoId?: string
+  metodoPago?: MetodoPago
 }

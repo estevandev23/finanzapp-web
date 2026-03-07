@@ -14,9 +14,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
-import { CATEGORIAS_INGRESO, type CategoriaIngreso } from '@/shared/types'
+import { CATEGORIAS_INGRESO, METODOS_PAGO, type CategoriaIngreso, type MetodoPago } from '@/shared/types'
 import { CurrencyInput } from '@/shared/components/currency-input'
 import { DatePicker } from '@/shared/components/date-picker'
+import { MetodoPagoIcon } from '@/shared/components/payment-icons'
 import { metasService } from '@/features/metas/services/metas.service'
 import { categoriasService } from '@/features/categorias/services/categorias.service'
 import { deudasService } from '@/features/deudas/services/deudas.service'
@@ -41,13 +42,14 @@ export function IngresoForm({ onSubmit, onCancel, initialData, isLoading }: Ingr
   const [categoriaValue, setCategoriaValue] = useState<string>(
     initialData?.categoriaPersonalizadaId
       ? `${CUSTOM_PREFIX}${initialData.categoriaPersonalizadaId}`
-      : initialData?.categoria ?? 'TRABAJO_PRINCIPAL'
+      : initialData?.categoria ?? 'TRABAJO_PRINCIPAL',
   )
   const [descripcion, setDescripcion] = useState(initialData?.descripcion ?? '')
   const [fecha, setFecha] = useState(initialData?.fecha ?? '')
   const [montoAhorro, setMontoAhorro] = useState(initialData?.montoAhorro?.toString() ?? '')
   const [metaId, setMetaId] = useState(SIN_META)
   const [prestamoId, setPrestamoId] = useState(initialData?.prestamoId ?? SIN_PRESTAMO)
+  const [metodoPago, setMetodoPago] = useState<MetodoPago>(initialData?.metodoPago ?? 'EFECTIVO')
   const [metas, setMetas] = useState<MetaFinanciera[]>([])
   const [prestamos, setPrestamos] = useState<Deuda[]>([])
   const [categoriasPersonalizadas, setCategoriasPersonalizadas] = useState<CategoriaPersonalizada[]>([])
@@ -106,6 +108,7 @@ export function IngresoForm({ onSubmit, onCancel, initialData, isLoading }: Ingr
       montoAhorro: montoAhorroNum,
       metaId: tieneMontoAhorro && metaId !== SIN_META ? metaId : undefined,
       prestamoId: prestamoId !== SIN_PRESTAMO ? prestamoId : undefined,
+      metodoPago,
     }
 
     await onSubmit(data)
@@ -179,6 +182,28 @@ export function IngresoForm({ onSubmit, onCancel, initialData, isLoading }: Ingr
         onChange={setFecha}
         disabled={isLoading}
       />
+
+      <div className="space-y-2">
+        <Label>Método de pago</Label>
+        <div className="grid grid-cols-4 gap-2">
+          {METODOS_PAGO.map((mp) => (
+            <button
+              key={mp.value}
+              type="button"
+              onClick={() => setMetodoPago(mp.value)}
+              disabled={isLoading}
+              className={`flex flex-col items-center gap-1 rounded-lg border p-2.5 text-xs font-medium transition-all ${
+                metodoPago === mp.value
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+              }`}
+            >
+              <MetodoPagoIcon metodo={mp.value} size={20} />
+              {mp.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <CurrencyInput
         id="montoAhorro"

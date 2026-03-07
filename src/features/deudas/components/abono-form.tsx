@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CurrencyInput } from '@/shared/components/currency-input'
+import { MetodoPagoIcon } from '@/shared/components/payment-icons'
 import { formatCurrency } from '@/shared/lib/formatters'
+import { METODOS_PAGO } from '@/shared/types'
 import type { AbonoRequest } from '../types'
 
 interface AbonoFormProps {
@@ -19,6 +21,7 @@ interface AbonoFormProps {
 export function AbonoForm({ onSubmit, montoRestante, isLoading, onCancel }: AbonoFormProps) {
   const [monto, setMonto] = useState('')
   const [descripcion, setDescripcion] = useState('')
+  const [metodoPago, setMetodoPago] = useState('')
 
   const montoNumerico = Number(monto) || 0
 
@@ -27,9 +30,11 @@ export function AbonoForm({ onSubmit, montoRestante, isLoading, onCancel }: Abon
     await onSubmit({
       monto: montoNumerico,
       descripcion: descripcion || undefined,
+      metodoPago,
     })
     setMonto('')
     setDescripcion('')
+    setMetodoPago('')
   }
 
   const excedeMonto = montoNumerico > montoRestante
@@ -51,6 +56,28 @@ export function AbonoForm({ onSubmit, montoRestante, isLoading, onCancel }: Abon
       </div>
 
       <div className="space-y-2">
+        <Label>Método de pago</Label>
+        <div className="grid grid-cols-4 gap-2">
+          {METODOS_PAGO.map((mp) => (
+            <button
+              key={mp.value}
+              type="button"
+              onClick={() => setMetodoPago(mp.value)}
+              disabled={isLoading}
+              className={`flex flex-col items-center gap-1 rounded-lg border p-2.5 text-xs font-medium transition-all ${
+                metodoPago === mp.value
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+              }`}
+            >
+              <MetodoPagoIcon metodo={mp.value} size={20} />
+              {mp.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="descripcion-abono">Descripcion (opcional)</Label>
         <Input
           id="descripcion-abono"
@@ -66,7 +93,7 @@ export function AbonoForm({ onSubmit, montoRestante, isLoading, onCancel }: Abon
             Cancelar
           </Button>
         )}
-        <Button type="submit" disabled={isLoading || montoNumerico <= 0 || excedeMonto} className="flex-1">
+        <Button type="submit" disabled={isLoading || montoNumerico <= 0 || excedeMonto || !metodoPago} className="flex-1">
           {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
           Registrar abono
         </Button>

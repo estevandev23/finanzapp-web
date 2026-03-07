@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { TrendingUp, TrendingDown, PiggyBank, Wallet, Target, HandCoins, Sparkles } from 'lucide-react'
+import { TrendingUp, TrendingDown, PiggyBank, Wallet, Target, HandCoins, Sparkles, Banknote, CreditCard, PieChart } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -9,9 +9,12 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { useAsyncData } from '@/shared/hooks/use-async-data'
 import { balanceService } from '@/features/balance/services/balance.service'
 import { metasService } from '@/features/metas/services/metas.service'
+import { gastosService } from '@/features/gastos/services/gastos.service'
 import { StatCard } from '@/shared/components/stat-card'
 import { DashboardSkeleton } from '@/shared/components/loading-spinner'
 import { formatCurrency } from '@/shared/lib/formatters'
+import { METODOS_PAGO } from '@/shared/types'
+import { MetodoPagoIcon } from '@/shared/components/payment-icons'
 import {
   DATE_PRESETS,
   DATE_PRESET_LABELS,
@@ -55,15 +58,30 @@ export default function DashboardPage() {
     [range]
   )
 
+  const fetchBalanceMetodos = useCallback(() => balanceService.obtenerBalancePorMetodo(), [])
+  const fetchUltimosGastos = useCallback(() => gastosService.obtenerGastos(), [])
+
+  const fetchDesgloseGastos = useCallback(
+    () =>
+      range
+        ? gastosService.obtenerDesgloseGastosPorPeriodo(range.start, range.end)
+        : gastosService.obtenerDesgloseGastos(),
+    [range]
+  )
+
   const { data: balanceTotal, isLoading: loadingBalance } = useAsyncData(fetchBalance)
   const { data: metas, isLoading: loadingMetas } = useAsyncData(fetchMetas)
   const { data: balancePeriodo, isLoading: loadingPeriodo } = useAsyncData(fetchBalancePeriodo)
+  const { data: balanceMetodos } = useAsyncData(fetchBalanceMetodos)
+  const { data: todosGastos } = useAsyncData(fetchUltimosGastos)
+  const { data: desgloseGastos } = useAsyncData(fetchDesgloseGastos)
 
   if (loadingBalance || loadingMetas) {
     return <DashboardSkeleton />
   }
 
   const metasActivas = metas?.filter((m) => m.estado === 'ACTIVA') ?? []
+  const ultimosGastos = (todosGastos ?? []).slice(0, 5)
 
   const periodoLabel = DATE_PRESET_LABELS[datePreset]
   const chartData = [
@@ -191,6 +209,133 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Balance por método de pago */}
+      {balanceMetodos?.metodos && balanceMetodos.metodos.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <CreditCard className="h-5 w-5 text-primary" />
+            Balance por método de pago
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {balanceMetodos.metodos.map((mb) => {
+              const metodoInfo = METODOS_PAGO.find((m) => m.value === mb.metodo)
+              return (
+                <Card key={mb.metodo} className="transition-shadow hover:shadow-md">
+                  <CardContent className="pt-5 pb-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <MetodoPagoIcon metodo={mb.metodo} size={24} />
+                      <span className="font-semibold text-sm">{metodoInfo?.label ?? mb.metodo}</span>
+                    </div>
+                    <p className={cn(
+                      'text-xl font-bold tabular-nums',
+                      mb.balance >= 0 ? 'text-emerald-600' : 'text-destructive'
+                    )}>
+                      {formatCurrency(mb.balance)}
+                    </p>
+                    <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+                      <span>Ingresos: {formatCurrency(mb.totalIngresos)}</span>
+                      <span>Gastos: {formatCurrency(mb.totalGastos)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Últimos gastos */}
+      {ultimosGastos.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <Banknote className="h-5 w-5 text-primary" />
+            Últimos gastos
+          </h2>
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {ultimosGastos.map((gasto) => {
+                  const metodosPago = gasto.metodosPago ?? []
+                  return (
+                    <div key={gasto.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {gasto.descripcion || gasto.categoriaDescripcion || 'Gasto'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs text-muted-foreground">{gasto.fecha}</span>
+                          {metodosPago.length > 0 && (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              {metodosPago.map((mp) => {
+                                const info = METODOS_PAGO.find((m) => m.value === mp.metodo)
+                                return (
+                                  <span key={mp.metodo} className="flex items-center gap-0.5" title={`${info?.label}: ${formatCurrency(mp.monto)}`}>
+                                    <MetodoPagoIcon metodo={mp.metodo} size={14} />
+                                  </span>
+                                )
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-sm font-semibold text-destructive tabular-nums whitespace-nowrap">
+                        -{formatCurrency(gasto.monto)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Desglose de gastos por categoría */}
+      {desgloseGastos && Object.keys(desgloseGastos).length > 0 && (
+        <div className="space-y-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <PieChart className="h-5 w-5 text-primary" />
+            Gastos por categoría — {periodoLabel}
+          </h2>
+          <Card>
+            <CardContent className="p-4">
+              {(() => {
+                const entries = Object.entries(desgloseGastos).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
+                const total = entries.reduce((sum, [, v]) => sum + v, 0)
+                return (
+                  <div className="space-y-2">
+                    {entries.map(([categoria, monto]) => {
+                      const porcentaje = total > 0 ? (monto / total) * 100 : 0
+                      return (
+                        <div key={categoria} className="space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium truncate">{categoria}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs text-muted-foreground tabular-nums">{porcentaje.toFixed(0)}%</span>
+                              <span className="font-semibold tabular-nums">{formatCurrency(monto)}</span>
+                            </div>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary/70 transition-all"
+                              style={{ width: `${porcentaje}%` }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <div className="flex justify-between pt-2 border-t text-sm font-bold">
+                      <span>Total</span>
+                      <span className="tabular-nums">{formatCurrency(total)}</span>
+                    </div>
+                  </div>
+                )
+              })()}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Metas activas */}
       {metasActivas.length > 0 && (

@@ -19,6 +19,25 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
+let isRefreshing = false
+let refreshSubscribers: ((token: string) => void)[] = []
+
+function onTokenRefreshed(newToken: string) {
+  refreshSubscribers.forEach((cb) => cb(newToken))
+  refreshSubscribers = []
+}
+
+function subscribeToRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb)
+}
+
+function forceLogout() {
+  clearAuthTokens()
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login?expired=true'
+  }
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiResponse<unknown>>) => {
@@ -29,10 +48,20 @@ apiClient.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('finanzapp_refresh_token')
       if (!refreshToken) {
-        clearAuthTokens()
-        window.location.href = '/login'
+        forceLogout()
         return Promise.reject(error)
       }
+
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeToRefresh((newToken) => {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`
+            resolve(apiClient(originalRequest))
+          })
+        })
+      }
+
+      isRefreshing = true
 
       try {
         const response = await axios.post(`${API_BASE_URL}/auth/refresh`, null, {
@@ -41,12 +70,17 @@ apiClient.interceptors.response.use(
 
         const newToken = response.data.data.token
         localStorage.setItem('finanzapp_token', newToken)
+        document.cookie = `finanzapp_token=${newToken}; path=/; max-age=86400`
         originalRequest.headers.Authorization = `Bearer ${newToken}`
+
+        onTokenRefreshed(newToken)
+        isRefreshing = false
 
         return apiClient(originalRequest)
       } catch {
-        clearAuthTokens()
-        window.location.href = '/login'
+        isRefreshing = false
+        refreshSubscribers = []
+        forceLogout()
         return Promise.reject(error)
       }
     }
@@ -66,8 +100,9 @@ export function setAuthTokens(token: string, refreshToken: string) {
 export function clearAuthTokens() {
   localStorage.removeItem('finanzapp_token')
   localStorage.removeItem('finanzapp_refresh_token')
+  localStorage.removeItem('finanzapp_user')
   if (typeof document !== 'undefined') {
-    document.cookie = 'finanzapp_token=; path=/; max-age=0'
+    document.cookie = 'finanzapp_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT'
   }
 }
 

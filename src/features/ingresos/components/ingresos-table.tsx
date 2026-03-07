@@ -15,7 +15,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Pencil, Trash2, HandCoins } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/shared/lib/formatters'
-import { CATEGORIAS_INGRESO } from '@/shared/types'
+import { CATEGORIAS_INGRESO, METODOS_PAGO } from '@/shared/types'
+import { MetodoPagoIcon } from '@/shared/components/payment-icons'
 import type { Ingreso } from '../types'
 
 interface IngresosTableProps {
@@ -109,7 +110,15 @@ export function IngresosTable({ ingresos, onEdit, onDelete }: IngresosTableProps
                 {ingreso.descripcion && (
                   <p className="truncate text-sm text-muted-foreground">{ingreso.descripcion}</p>
                 )}
-                <p className="text-xs text-muted-foreground">{formatDate(ingreso.fecha)}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{formatDate(ingreso.fecha)}</span>
+                  {ingreso.metodoPago && (
+                    <span className="flex items-center gap-1">
+                      <MetodoPagoIcon metodo={ingreso.metodoPago} size={14} />
+                      {METODOS_PAGO.find((m) => m.value === ingreso.metodoPago)?.label}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex shrink-0 gap-1">
                 <ActionButton onClick={() => onEdit(ingreso)} tooltip="Editar ingreso" icon={Pencil} />
@@ -133,6 +142,7 @@ export function IngresosTable({ ingresos, onEdit, onDelete }: IngresosTableProps
         <TableRow>
           <TableHead>Fecha</TableHead>
           <TableHead>Monto</TableHead>
+          <TableHead>Método</TableHead>
           <TableHead>Categoría</TableHead>
           <TableHead>Descripción</TableHead>
           <TableHead className="text-right">Acciones</TableHead>
@@ -152,6 +162,16 @@ export function IngresosTable({ ingresos, onEdit, onDelete }: IngresosTableProps
                   </Badge>
                 )}
               </div>
+            </TableCell>
+            <TableCell>
+              {ingreso.metodoPago && (() => {
+                const mp = METODOS_PAGO.find((m) => m.value === ingreso.metodoPago)
+                return mp ? (
+                  <span className="flex items-center gap-1.5 text-sm">
+                    <MetodoPagoIcon metodo={ingreso.metodoPago!} size={16} /> {mp.label}
+                  </span>
+                ) : null
+              })()}
             </TableCell>
             <TableCell>
               <CategoriaBadge ingreso={ingreso} />

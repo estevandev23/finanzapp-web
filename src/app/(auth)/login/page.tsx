@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, PiggyBank } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { sileo } from 'sileo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,16 +13,30 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { OAuthButtons } from '@/features/auth/components/oauth-buttons'
 import { TwoFactorVerification } from '@/features/auth/components/two-factor-verification'
 import { PasswordInput } from '@/features/auth/components/password-input'
+import { clearAuthTokens } from '@/shared/lib/api-client'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login, twoFactorPending, isAuthenticated } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard')
+      return
+    }
+
+    const isExpiredSession = searchParams.get('expired') === 'true' || searchParams.has('callbackUrl')
+    if (isExpiredSession) {
+      clearAuthTokens()
+      signOut({ redirect: false }).catch(() => {})
+    }
+  }, [isAuthenticated, router, searchParams])
+
   if (isAuthenticated) {
-    router.push('/dashboard')
     return null
   }
 

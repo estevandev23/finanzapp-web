@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { ChevronDown, ChevronUp, Pencil, Trash2, Plus, Calendar, Building2 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChevronDown, ChevronUp, Pencil, Trash2, Plus, Calendar, Building2, Tag } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -117,118 +117,110 @@ export function DeudaCard({ deuda, onUpdate }: DeudaCardProps) {
 
   return (
     <>
-      <Card className={isCompleted ? 'opacity-75' : ''}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-base">{deuda.descripcion}</CardTitle>
-              {deuda.entidad && (
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Building2 className="h-3.5 w-3.5" />
-                  <span>{deuda.entidad}</span>
-                </div>
-              )}
+      <Card className={isCompleted ? 'opacity-70' : ''}>
+        <CardContent className="p-4 space-y-3">
+          {/* Encabezado: titulo + badge estado */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold truncate leading-tight">{deuda.descripcion}</h3>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                {deuda.entidad && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Building2 className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{deuda.entidad}</span>
+                  </span>
+                )}
+                {deuda.categoria && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Tag className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{deuda.categoria}</span>
+                  </span>
+                )}
+              </div>
             </div>
-            <Badge variant={ESTADO_BADGE_VARIANT[deuda.estado]}>
+            <Badge variant={ESTADO_BADGE_VARIANT[deuda.estado]} className="shrink-0 text-[10px] px-1.5 py-0">
               {ESTADO_LABELS[deuda.estado]}
             </Badge>
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-sm font-semibold">{formatCurrency(deuda.montoTotal)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Abonado</p>
-              <p className="text-sm font-semibold text-primary">{formatCurrency(deuda.montoAbonado)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Restante</p>
-              <p className="text-sm font-semibold text-destructive">{formatCurrency(deuda.montoRestante)}</p>
-            </div>
+          {/* Montos en línea compacta */}
+          <div className="flex items-baseline justify-between gap-2 text-sm">
+            <span className="font-bold tabular-nums">{formatCurrency(deuda.montoTotal)}</span>
+            <span className="text-xs text-muted-foreground">
+              Abonado: <span className="font-medium text-primary">{formatCurrency(deuda.montoAbonado)}</span>
+              {' / '}
+              Resta: <span className="font-medium text-destructive">{formatCurrency(deuda.montoRestante)}</span>
+            </span>
           </div>
 
-          <div className="space-y-1">
-            <Progress value={deuda.porcentajeAvance} />
-            <p className={`text-right text-sm font-medium ${progressColor}`}>
-              {deuda.porcentajeAvance.toFixed(1)}%
-            </p>
+          {/* Barra progreso compacta */}
+          <div className="flex items-center gap-2">
+            <Progress value={deuda.porcentajeAvance} className="h-1.5 flex-1" />
+            <span className={`text-xs font-medium tabular-nums ${progressColor}`}>
+              {deuda.porcentajeAvance.toFixed(0)}%
+            </span>
           </div>
 
-          {(deuda.fechaInicio || deuda.fechaLimite) && (
-            <div className="flex gap-4 text-xs text-muted-foreground">
+          {/* Fechas + acciones en una fila */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-3 text-[11px] text-muted-foreground">
               {deuda.fechaInicio && (
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  <span>Inicio: {formatDate(deuda.fechaInicio)}</span>
-                </div>
+                <span className="flex items-center gap-0.5">
+                  <Calendar className="h-2.5 w-2.5" />
+                  {formatDate(deuda.fechaInicio)}
+                </span>
               )}
               {deuda.fechaLimite && (
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  <span>Limite: {formatDate(deuda.fechaLimite)}</span>
-                </div>
+                <span className="flex items-center gap-0.5">
+                  <Calendar className="h-2.5 w-2.5" />
+                  {formatDate(deuda.fechaLimite)}
+                </span>
               )}
             </div>
-          )}
 
-          <div className="flex flex-wrap gap-2">
-            {!isCompleted && (
-              <Button size="sm" variant="default" onClick={() => setShowAbonoForm(true)}>
-                <Plus className="h-3.5 w-3.5" />
-                Abonar
+            <div className="flex items-center gap-1">
+              {!isCompleted && (
+                <Button size="sm" variant="default" className="h-7 px-2 text-xs" onClick={() => setShowAbonoForm(true)}>
+                  <Plus className="h-3 w-3" />
+                  Abonar
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handleToggleAbonos}>
+                {showAbonos ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
               </Button>
-            )}
-            <Button size="sm" variant="outline" onClick={handleToggleAbonos}>
-              {showAbonos ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              Historial
-            </Button>
-            {!isCompleted && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="sm" variant="ghost" onClick={() => setShowEditForm(true)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                    <span className="sr-only">Editar</span>
+              {!isCompleted && (
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setShowEditForm(true)}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                    <Trash2 className="h-3 w-3" />
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>Editar {deuda.tipo === 'DEUDA' ? 'deuda' : 'préstamo'}</TooltipContent>
-              </Tooltip>
-            )}
-            <AlertDialog>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <AlertDialogTrigger asChild>
-                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span className="sr-only">Eliminar</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Eliminar {deuda.tipo === 'DEUDA' ? 'deuda' : 'préstamo'}</TooltipContent>
-              </Tooltip>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Eliminar {deuda.tipo === 'DEUDA' ? 'deuda' : 'prestamo'}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta accion no se puede deshacer. Se eliminaran todos los abonos asociados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Eliminar {deuda.tipo === 'DEUDA' ? 'deuda' : 'prestamo'}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta accion no se puede deshacer. Se eliminaran todos los abonos asociados.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Eliminar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
 
+          {/* Historial colapsable */}
           {showAbonos && (
-            <div className="border-t pt-3">
-              <h4 className="mb-2 text-sm font-medium">Historial de abonos</h4>
+            <div className="border-t pt-2">
+              <h4 className="mb-1.5 text-xs font-medium text-muted-foreground">Historial de abonos</h4>
               {loadingAbonos ? (
-                <p className="text-sm text-muted-foreground">Cargando...</p>
+                <p className="text-xs text-muted-foreground">Cargando...</p>
               ) : (
                 <AbonoHistory abonos={abonos ?? []} />
               )}
@@ -265,6 +257,7 @@ export function DeudaCard({ deuda, onUpdate }: DeudaCardProps) {
               montoTotal: deuda.montoTotal,
               fechaInicio: deuda.fechaInicio,
               fechaLimite: deuda.fechaLimite,
+              categoria: deuda.categoria,
             }}
             isLoading={isSubmitting}
             onCancel={() => setShowEditForm(false)}

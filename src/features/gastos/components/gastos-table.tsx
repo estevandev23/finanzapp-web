@@ -15,7 +15,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Pencil, Trash2, HandCoins } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/shared/lib/formatters'
-import { CATEGORIAS_GASTO } from '@/shared/types'
+import { CATEGORIAS_GASTO, METODOS_PAGO } from '@/shared/types'
+import { MetodoPagoIcon } from '@/shared/components/payment-icons'
 import type { Gasto } from '../types'
 
 interface GastosTableProps {
@@ -109,7 +110,17 @@ export function GastosTable({ gastos, onEdit, onDelete }: GastosTableProps) {
                 {gasto.descripcion && (
                   <p className="truncate text-sm text-muted-foreground">{gasto.descripcion}</p>
                 )}
-                <p className="text-xs text-muted-foreground">{formatDate(gasto.fecha)}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{formatDate(gasto.fecha)}</span>
+                  {gasto.metodosPago && gasto.metodosPago.length > 0 && (
+                    <span className="flex items-center gap-1">
+                      {gasto.metodosPago.map((mp) => {
+                        const info = METODOS_PAGO.find((m) => m.value === mp.metodo)
+                        return <span key={mp.metodo} title={`${info?.label}: ${formatCurrency(mp.monto)}`}><MetodoPagoIcon metodo={mp.metodo} size={14} /></span>
+                      })}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex shrink-0 gap-1">
                 <ActionButton onClick={() => onEdit(gasto)} tooltip="Editar gasto" icon={Pencil} />
@@ -133,6 +144,7 @@ export function GastosTable({ gastos, onEdit, onDelete }: GastosTableProps) {
         <TableRow>
           <TableHead>Fecha</TableHead>
           <TableHead>Monto</TableHead>
+          <TableHead>Método</TableHead>
           <TableHead>Categoría</TableHead>
           <TableHead>Descripción</TableHead>
           <TableHead className="text-right">Acciones</TableHead>
@@ -152,6 +164,25 @@ export function GastosTable({ gastos, onEdit, onDelete }: GastosTableProps) {
                   </Badge>
                 )}
               </div>
+            </TableCell>
+            <TableCell>
+              {gasto.metodosPago && gasto.metodosPago.length > 0 ? (
+                <div className="flex items-center gap-1">
+                  {gasto.metodosPago.map((mp) => {
+                    const info = METODOS_PAGO.find((m) => m.value === mp.metodo)
+                    return (
+                      <Tooltip key={mp.metodo}>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><MetodoPagoIcon metodo={mp.metodo} size={18} /></span>
+                        </TooltipTrigger>
+                        <TooltipContent>{info?.label}: {formatCurrency(mp.monto)}</TooltipContent>
+                      </Tooltip>
+                    )
+                  })}
+                </div>
+              ) : (
+                <span className="text-muted-foreground/50">—</span>
+              )}
             </TableCell>
             <TableCell>
               <CategoriaBadge gasto={gasto} />

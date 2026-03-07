@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/lib/api-client'
 import type { ApiResponse } from '@/shared/types'
-import type { Balance } from '../types'
+import type { Balance, BalancePorMetodo } from '../types'
 
 export const balanceService = {
   obtenerBalance(): Promise<ApiResponse<Balance>> {
@@ -11,5 +11,9 @@ export const balanceService = {
     return apiClient
       .get<ApiResponse<Balance>>('/balance/periodo', { params: { fechaInicio, fechaFin } })
       .then(res => res.data)
+  },
+
+  obtenerBalancePorMetodo(): Promise<ApiResponse<BalancePorMetodo>> {
+    return apiClient.get<ApiResponse<BalancePorMetodo>>('/balance/metodos').then(res => res.data)
   },
 }

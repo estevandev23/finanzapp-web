@@ -7,3 +7,14 @@ export interface Balance {
   totalPrestamos: number
   dineroDisponible: number
 }
+
+export interface MetodoBalance {
+  metodo: string
+  totalIngresos: number
+  totalGastos: number
+  balance: number
+}
+
+export interface BalancePorMetodo {
+  metodos: MetodoBalance[]
+}

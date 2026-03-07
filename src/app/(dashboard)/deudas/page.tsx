@@ -45,7 +45,7 @@ export default function DeudasPage() {
   const deudaFilterConfig = useMemo(
     () => ({
       getSearchableText: (d: Deuda) =>
-        [d.descripcion, d.entidad, String(d.montoTotal), String(d.montoRestante)]
+        [d.descripcion, d.entidad, d.categoria, String(d.montoTotal), String(d.montoRestante)]
           .filter(Boolean)
           .join(' '),
       getStatus: (d: Deuda) => d.estado,
@@ -56,7 +56,7 @@ export default function DeudasPage() {
   const prestamoFilterConfig = useMemo(
     () => ({
       getSearchableText: (d: Deuda) =>
-        [d.descripcion, d.entidad, String(d.montoTotal), String(d.montoAbonado)]
+        [d.descripcion, d.entidad, d.categoria, String(d.montoTotal), String(d.montoAbonado)]
           .filter(Boolean)
           .join(' '),
       getStatus: (d: Deuda) => d.estado,

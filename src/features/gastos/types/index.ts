@@ -1,4 +1,10 @@
-import type { CategoriaGasto } from '@/shared/types'
+import type { CategoriaGasto, MetodoPago } from '@/shared/types'
+
+export interface GastoMetodoPagoDetalle {
+  id?: string
+  metodo: MetodoPago
+  monto: number
+}
 
 export interface Gasto {
   id: string
@@ -10,6 +16,7 @@ export interface Gasto {
   descripcion?: string
   fecha: string
   deudaId?: string
+  metodosPago?: GastoMetodoPagoDetalle[]
 }
 
 export interface GastoRequest {
@@ -19,4 +26,6 @@ export interface GastoRequest {
   descripcion?: string
   fecha?: string
   deudaId?: string
+  metodoPago?: MetodoPago
+  metodosPago?: { metodo: MetodoPago; monto: number }[]
 }

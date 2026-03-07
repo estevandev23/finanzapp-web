@@ -18,7 +18,16 @@ export type CategoriaGasto =
   | 'OTROS'
   | 'ABONO'
 
+export type MetodoPago = 'EFECTIVO' | 'NEQUI' | 'BANCOLOMBIA' | 'OTRO'
+
 export type EstadoMeta = 'ACTIVA' | 'COMPLETADA' | 'CANCELADA'
+
+export const METODOS_PAGO: { value: MetodoPago; label: string; icon: string }[] = [
+  { value: 'EFECTIVO', label: 'Efectivo', icon: '💵' },
+  { value: 'NEQUI', label: 'Nequi', icon: '🟣' },
+  { value: 'BANCOLOMBIA', label: 'Bancolombia', icon: '🟡' },
+  { value: 'OTRO', label: 'Otro', icon: '💳' },
+]
 
 export const CATEGORIAS_INGRESO: { value: CategoriaIngreso; label: string }[] = [
   { value: 'TRABAJO_PRINCIPAL', label: 'Trabajo principal' },

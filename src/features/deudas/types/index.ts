@@ -16,6 +16,10 @@ export interface Deuda {
   fechaInicio?: string
   fechaLimite?: string
   fechaCreacion: string
+  categoria?: string
+  categoriaPersonalizadaId?: string
+  categoriaDescripcion?: string
+  categoriaColor?: string
 }
 
 export interface DeudaRequest {
@@ -25,6 +29,8 @@ export interface DeudaRequest {
   montoTotal: number
   fechaInicio?: string
   fechaLimite?: string
+  categoria?: string
+  categoriaPersonalizadaId?: string
 }
 
 export interface AbonoDeuda {
@@ -38,6 +44,7 @@ export interface AbonoDeuda {
 export interface AbonoRequest {
   monto: number
   descripcion?: string
+  metodoPago: string
 }
 
 export interface ResumenDeudas {

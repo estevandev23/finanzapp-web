@@ -5,7 +5,8 @@ const PUBLIC_ROUTES = ['/login', '/register', '/oauth-callback', '/forgot-passwo
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const token = request.cookies.get('finanzapp_token')?.value
+  const tokenValue = request.cookies.get('finanzapp_token')?.value
+  const token = tokenValue?.trim() || null
 
   if (pathname.startsWith('/api/auth')) {
     return NextResponse.next()
