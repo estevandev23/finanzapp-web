@@ -1,7 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import type { ApiResponse } from '@/shared/types'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://finanzappapi.estevanv.dev/api/v1'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

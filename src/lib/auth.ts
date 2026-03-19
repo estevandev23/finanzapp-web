@@ -2,7 +2,7 @@ import NextAuth from 'next-auth'
 import Google from 'next-auth/providers/google'
 import GitHub from 'next-auth/providers/github'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://finanzappapi.estevanv.dev/api/v1'
 
 declare module 'next-auth' {
   interface User {

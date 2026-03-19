@@ -11,6 +11,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Placeholders para que NextAuth se inicialice durante el build
+ENV AUTH_SECRET="build-placeholder"
+ENV AUTH_URL="http://localhost:3000"
+ENV GOOGLE_CLIENT_ID="build"
+ENV GOOGLE_CLIENT_SECRET="build"
+ENV GITHUB_CLIENT_ID="build"
+ENV GITHUB_CLIENT_SECRET="build"
 RUN pnpm run build
 
 FROM base AS runner

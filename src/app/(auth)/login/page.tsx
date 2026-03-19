@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, PiggyBank } from 'lucide-react'
@@ -16,6 +16,14 @@ import { PasswordInput } from '@/features/auth/components/password-input'
 import { clearAuthTokens } from '@/shared/lib/api-client'
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  )
+}
+
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { login, twoFactorPending, isAuthenticated } = useAuth()
@@ -132,3 +140,4 @@ export default function LoginPage() {
     </div>
   )
 }
+
