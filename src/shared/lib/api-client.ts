@@ -20,15 +20,20 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 })
 
 let isRefreshing = false
-let refreshSubscribers: ((token: string) => void)[] = []
+let refreshSubscribers: { resolve: (token: string) => void; reject: (error: unknown) => void }[] = []
 
 function onTokenRefreshed(newToken: string) {
-  refreshSubscribers.forEach((cb) => cb(newToken))
+  refreshSubscribers.forEach(({ resolve }) => resolve(newToken))
   refreshSubscribers = []
 }
 
-function subscribeToRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb)
+function onRefreshFailed(error: unknown) {
+  refreshSubscribers.forEach(({ reject }) => reject(error))
+  refreshSubscribers = []
+}
+
+function subscribeToRefresh(resolve: (token: string) => void, reject: (error: unknown) => void) {
+  refreshSubscribers.push({ resolve, reject })
 }
 
 function forceLogout() {
@@ -53,11 +58,14 @@ apiClient.interceptors.response.use(
       }
 
       if (isRefreshing) {
-        return new Promise((resolve) => {
-          subscribeToRefresh((newToken) => {
-            originalRequest.headers.Authorization = `Bearer ${newToken}`
-            resolve(apiClient(originalRequest))
-          })
+        return new Promise((resolve, reject) => {
+          subscribeToRefresh(
+            (newToken) => {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`
+              resolve(apiClient(originalRequest))
+            },
+            reject
+          )
         })
       }
 
@@ -77,9 +85,9 @@ apiClient.interceptors.response.use(
         isRefreshing = false
 
         return apiClient(originalRequest)
-      } catch {
+      } catch (refreshError) {
         isRefreshing = false
-        refreshSubscribers = []
+        onRefreshFailed(refreshError)
         forceLogout()
         return Promise.reject(error)
       }

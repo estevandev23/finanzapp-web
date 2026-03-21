@@ -28,6 +28,7 @@ interface AuthContextType {
   verify2FA: (codigo: string) => Promise<void>
   cancelar2FA: () => void
   logout: () => void
+  clearSession: () => void
   loginOAuthCallback: (data: {
     requiere2FA: boolean
     token?: string
@@ -128,12 +129,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('finanzapp_user', JSON.stringify(userData))
   }, [])
 
-  const logout = useCallback(() => {
+  const clearSession = useCallback(() => {
     clearAuthTokens()
-    localStorage.removeItem('finanzapp_user')
     setUser(null)
-    window.location.href = '/login'
   }, [])
+
+  const logout = useCallback(() => {
+    clearSession()
+    window.location.href = '/login'
+  }, [clearSession])
 
   return (
     <AuthContext.Provider
@@ -147,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verify2FA,
         cancelar2FA,
         logout,
+        clearSession,
         loginOAuthCallback,
       }}
     >

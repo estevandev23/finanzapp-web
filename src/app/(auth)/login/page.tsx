@@ -13,7 +13,6 @@ import { useAuth } from '@/features/auth/hooks/use-auth'
 import { OAuthButtons } from '@/features/auth/components/oauth-buttons'
 import { TwoFactorVerification } from '@/features/auth/components/two-factor-verification'
 import { PasswordInput } from '@/features/auth/components/password-input'
-import { clearAuthTokens } from '@/shared/lib/api-client'
 
 export default function LoginPage() {
   return (
@@ -26,26 +25,34 @@ export default function LoginPage() {
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { login, twoFactorPending, isAuthenticated } = useAuth()
+  const { login, twoFactorPending, isAuthenticated, isLoading, clearSession } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCleaningSession, setIsCleaningSession] = useState(false)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard')
+    const isExpiredSession = searchParams.get('expired') === 'true' || searchParams.has('callbackUrl')
+
+    if (isExpiredSession) {
+      setIsCleaningSession(true)
+      clearSession()
+      signOut({ redirect: false }).catch(() => {})
+      setIsCleaningSession(false)
       return
     }
 
-    const isExpiredSession = searchParams.get('expired') === 'true' || searchParams.has('callbackUrl')
-    if (isExpiredSession) {
-      clearAuthTokens()
-      signOut({ redirect: false }).catch(() => {})
+    if (isAuthenticated) {
+      router.push('/dashboard')
     }
-  }, [isAuthenticated, router, searchParams])
+  }, [isAuthenticated, router, searchParams, clearSession])
 
-  if (isAuthenticated) {
-    return null
+  if (isLoading || isCleaningSession) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   if (twoFactorPending) {
