@@ -1,13 +1,17 @@
 import type { Metadata } from "next"
-import { Arimo } from "next/font/google"
+import localFont from "next/font/local"
 import { Toaster } from "sileo"
 import { NextAuthProvider } from "@/shared/components/providers/next-auth-provider"
 import "./globals.css"
 
-const arimo = Arimo({
+const arimo = localFont({
+  src: [
+    { path: "./fonts/Arimo-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/Arimo-Medium.ttf", weight: "500", style: "normal" },
+    { path: "./fonts/Arimo-SemiBold.ttf", weight: "600", style: "normal" },
+    { path: "./fonts/Arimo-Bold.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-arimo",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 })
 
 export const metadata: Metadata = {

@@ -17,13 +17,17 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
-export function OAuthButtons() {
+interface OAuthButtonsProps {
+  callbackUrl?: string
+}
+
+export function OAuthButtons({ callbackUrl = '/oauth-callback' }: OAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
 
   const handleOAuth = async (provider: 'google' | 'github') => {
     setLoadingProvider(provider)
     try {
-      await signIn(provider, { callbackUrl: '/oauth-callback' })
+      await signIn(provider, { callbackUrl })
     } catch {
       sileo.error({ title: 'Error al iniciar sesion', description: `No se pudo conectar con ${provider}` })
       setLoadingProvider(null)

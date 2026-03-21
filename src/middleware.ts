@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_ROUTES = ['/login', '/register', '/oauth-callback', '/forgot-password']
+const PUBLIC_ROUTES = ['/login', '/register', '/oauth-callback', '/forgot-password', '/whatsapp-login']
+const ALWAYS_ACCESSIBLE_ROUTES = ['/whatsapp-login']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -21,7 +22,10 @@ export function middleware(request: NextRequest) {
   }
 
   if (token && isPublicRoute) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    const isAlwaysAccessible = ALWAYS_ACCESSIBLE_ROUTES.some((route) => pathname.startsWith(route))
+    if (!isAlwaysAccessible) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
 
   return NextResponse.next()
